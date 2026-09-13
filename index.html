@@ -182,7 +182,7 @@
 <div id="app" class="hidden">
   <header><div class="wrap">
     <div class="wordmark">FOUR<span>PLAY</span></div>
-    <div class="who"><span id="who-name"></span><button id="signout">Sign out</button></div>
+    <div class="who"><span id="who-name"></span><button id="changepw">Password</button><button id="signout">Sign out</button></div>
   </div></header>
   <nav><div class="wrap" role="tablist">
     <button role="tab" data-view="picks" aria-selected="true">Picks</button>
@@ -211,6 +211,17 @@
   <div class="dialog-actions">
     <button class="btn quiet" id="confirm-no">Not yet</button>
     <button class="btn ticket" id="confirm-yes">Yes, lock them</button>
+  </div>
+</dialog>
+
+<dialog id="pwdlg">
+  <h3>Change password</h3>
+  <label class="field"><span>New password (8+ characters)</span><input id="pw1" type="password" autocomplete="new-password"></label>
+  <label class="field"><span>Repeat it</span><input id="pw2" type="password" autocomplete="new-password"></label>
+  <div class="error" id="pw-error"></div>
+  <div class="dialog-actions">
+    <button class="btn quiet" id="pw-no">Cancel</button>
+    <button class="btn" id="pw-yes">Save password</button>
   </div>
 </dialog>
 
@@ -627,6 +638,16 @@ $('#signin').onclick = async () => {
 };
 $('#password').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#signin').click(); });
 $('#signout').onclick = () => sb.auth.signOut();
+$('#changepw').onclick = () => { $('#pw1').value = $('#pw2').value = ''; $('#pw-error').textContent = ''; $('#pwdlg').showModal(); };
+$('#pw-no').onclick = () => $('#pwdlg').close();
+$('#pw-yes').onclick = async () => {
+  const a = $('#pw1').value, b = $('#pw2').value;
+  if (a.length < 8) return $('#pw-error').textContent = 'Use at least 8 characters.';
+  if (a !== b) return $('#pw-error').textContent = 'The two passwords don\'t match.';
+  const { error } = await sb.auth.updateUser({ password: a });
+  if (error) return $('#pw-error').textContent = error.message;
+  $('#pwdlg').close(); toast('Password changed');
+};
 sb.auth.onAuthStateChange(() => boot());
 document.querySelectorAll('[role=tab]').forEach((b) => b.onclick = () => { S.view = b.dataset.view; render(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.user) render(); });
