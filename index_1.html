@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fourplay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ── 1. Paste your two Supabase values here (Project Settings → API) ─────────
+  const CONFIG = {
+    SUPABASE_URL: 'https://yrwimovzjcmsvphmvbse.supabase.co',
+    SUPABASE_ANON_KEY: sb_publishable_mSLe6dEXG6z5TxAWr5XurQ_yw5qnPDs	,
+  };
+</script>
+<style>
+  :root {
+    --turf: #1E5631;
+    --turf-deep: #14261B;
+    --chalk: #F5F6F2;
+    --paper: #FFFFFF;
+    --ink: #17201A;
+    --ink-soft: #5C665E;
+    --rule: #D9DCD6;
+    --ticket: #F5C518;
+    --loss: #B3261E;
+    --push: #8A7A2E;
+    --sans: 'Barlow', system-ui, sans-serif;
+    --cond: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--chalk); color: var(--ink);
+    font: 16px/1.45 var(--sans);
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; background: none; border: 0; padding: 0; }
+  button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+    outline: 3px solid var(--ticket); outline-offset: 2px;
+  }
+  .wrap { max-width: 620px; margin: 0 auto; padding: 0 16px; }
+  .hidden { display: none !important; }
+
+  /* ── Header ─────────────────────────────────────────────── */
+  header { background: var(--turf-deep); color: #fff; }
+  header .wrap { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 16px 0; }
+  .wordmark { font: 700 30px/1 var(--cond); letter-spacing: .01em; }
+  .wordmark span { color: var(--ticket); }
+  .who { font-size: 14px; color: #C9D4CC; }
+  .who button { color: #fff; text-decoration: underline; margin-left: 10px; }
+  nav { background: var(--turf-deep); }
+  nav .wrap { display: flex; gap: 22px; padding-top: 12px; }
+  nav button {
+    color: #C9D4CC; padding: 10px 0 12px; font-weight: 500; border-bottom: 3px solid transparent;
+  }
+  nav button[aria-selected="true"] { color: #fff; border-color: var(--ticket); }
+
+  main { padding: 20px 0 140px; }
+  h1 { font: 700 34px/1.05 var(--cond); margin: 0 0 4px; }
+  h2 { font: 700 22px/1.1 var(--cond); margin: 28px 0 10px; }
+  .meta { color: var(--ink-soft); font-size: 14px; margin: 0 0 18px; }
+  .meta strong { color: var(--ink); font-weight: 600; }
+
+  /* ── Sign-in ─────────────────────────────────────────────── */
+  .card { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 20px; }
+  .field { display: block; margin-bottom: 14px; }
+  .field span { display: block; font-size: 14px; color: var(--ink-soft); margin-bottom: 4px; }
+  .field input, .field select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: #fff;
+  }
+  .btn {
+    display: inline-block; padding: 12px 18px; border-radius: 10px; font-weight: 600;
+    background: var(--turf); color: #fff;
+  }
+  .btn.quiet { background: transparent; color: var(--turf); border: 1px solid var(--turf); }
+  .btn.ticket { background: var(--ticket); color: var(--turf-deep); }
+  .btn.danger { background: var(--loss); }
+  .btn.small { padding: 7px 12px; font-size: 14px; border-radius: 8px; }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .error { color: var(--loss); font-size: 14px; margin-top: 10px; }
+  .notice { background: #FFF6D1; border-left: 4px solid var(--ticket); padding: 10px 14px; border-radius: 6px; font-size: 14px; margin: 0 0 16px; }
+  .empty { color: var(--ink-soft); padding: 40px 0; text-align: center; }
+
+  /* ── Games ───────────────────────────────────────────────── */
+  .game { border-top: 1px solid var(--rule); padding: 14px 0 16px; }
+  .game:last-child { border-bottom: 1px solid var(--rule); }
+  .game-head { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-soft); margin-bottom: 8px; }
+  .game-head .vegas { font-weight: 600; color: var(--ink); }
+  .game-head .started { color: var(--loss); font-weight: 600; }
+  .sides { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .team {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left;
+    padding: 12px 14px; border: 1.5px solid var(--rule); border-radius: 10px; background: var(--paper);
+    transition: background .12s, border-color .12s, transform .08s;
+  }
+  .team:active:not([disabled]) { transform: scale(.985); }
+  .team .name { font: 600 19px/1.05 var(--cond); }
+  .team .sub { display: block; font: 400 12px/1.3 var(--sans); color: var(--ink-soft); }
+  .team .line { font: 700 30px/1 var(--cond); letter-spacing: -.01em; }
+  .team[aria-pressed="true"] { background: var(--turf); border-color: var(--turf); color: #fff; }
+  .team[aria-pressed="true"] .sub { color: #C9D4CC; }
+  .team[disabled] { opacity: .5; cursor: not-allowed; }
+  .team[aria-pressed="true"].loss { background: var(--loss); border-color: var(--loss); }
+  .team[aria-pressed="true"].push { background: var(--push); border-color: var(--push); }
+  .team[aria-pressed="true"] .score { color: #fff; }
+  .score { font: 700 16px/1 var(--cond); color: var(--ink-soft); }
+  .straddle {
+    display: inline-block; font: 700 12px/1 var(--cond); letter-spacing: .06em; color: var(--turf-deep);
+    background: var(--ticket); border-radius: 4px; padding: 4px 6px; margin-left: 8px; vertical-align: middle;
+  }
+
+  /* ── Slip ────────────────────────────────────────────────── */
+  .slip {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    background: var(--paper); border-top: 1px solid var(--rule);
+    box-shadow: 0 -8px 24px rgba(20,38,27,.10); padding-bottom: env(safe-area-inset-bottom);
+  }
+  .slip .wrap { display: flex; align-items: center; gap: 14px; padding: 12px 16px; }
+  .slots { display: flex; gap: 6px; flex: 1; min-width: 0; }
+  .slot {
+    flex: 1; min-width: 0; height: 44px; border: 1.5px dashed var(--rule); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font: 700 15px/1 var(--cond);
+    white-space: nowrap; overflow: hidden; padding: 0 4px;
+  }
+  .slot.filled { border-style: solid; border-color: var(--turf); background: #E9F1EB; color: var(--turf-deep); }
+  .slot small { font-weight: 600; opacity: .7; margin-left: 4px; }
+
+  /* ── Tables ──────────────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+  th, td { padding: 10px 12px; text-align: left; border-top: 1px solid var(--rule); vertical-align: top; }
+  th { font-size: 13px; font-weight: 600; color: var(--ink-soft); border-top: 0; }
+  td.num, th.num { text-align: right; font-family: var(--cond); font-size: 18px; font-weight: 700; }
+  .pos { color: var(--turf); } .neg { color: var(--loss); } .zero { color: var(--ink-soft); }
+  .pill { display: inline-block; font-size: 13px; padding: 2px 8px; border-radius: 999px; background: #E9F1EB; color: var(--turf-deep); margin: 2px 4px 2px 0; }
+  .pill.w { background: #E9F1EB; } .pill.l { background: #F8E3E1; color: var(--loss); } .pill.p { background: #F5EFD6; color: var(--push); }
+  .pill.waiting { background: #EEF0EC; color: var(--ink-soft); }
+  .row-you td { background: #FBFCF9; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--rule); margin-right: 8px; }
+  .dot.in { background: var(--turf); }
+
+  /* ── Admin ───────────────────────────────────────────────── */
+  .admin-game { display: grid; grid-template-columns: 1fr 70px 56px 56px 110px; gap: 8px; align-items: center; padding: 10px 0; border-top: 1px solid var(--rule); font-size: 14px; }
+  .admin-game input, .admin-game select { width: 100%; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; }
+  .admin-game .alert { color: var(--loss); font-weight: 600; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 18px; align-items: center; }
+  .toolbar select, .toolbar input { padding: 8px 10px; border: 1px solid var(--rule); border-radius: 8px; }
+  .toast { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); background: var(--turf-deep); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 9; }
+
+  /* ── Dialog ──────────────────────────────────────────────── */
+  dialog { border: 0; border-radius: 12px; padding: 24px; max-width: 400px; width: calc(100% - 32px); }
+  dialog::backdrop { background: rgba(20,38,27,.55); }
+  dialog h3 { font: 700 24px/1.1 var(--cond); margin: 0 0 8px; }
+  dialog ul { margin: 12px 0 18px; padding: 0; list-style: none; }
+  dialog li { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--rule); font-weight: 500; }
+  dialog li b { font: 700 18px/1 var(--cond); }
+  .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  @media (max-width: 420px) {
+    .team .name { font-size: 17px; } .team .line { font-size: 26px; }
+    .admin-game { grid-template-columns: 1fr 64px 48px 48px; } .admin-game select { grid-column: 1 / -1; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<!-- Sign in -->
+<section id="auth" class="wrap hidden" style="padding-top:60px">
+  <div class="wordmark" style="color:var(--turf-deep);margin-bottom:24px">FOUR<span>PLAY</span></div>
+  <div class="card">
+    <label class="field"><span>Email</span><input id="email" type="email" autocomplete="username"></label>
+    <label class="field"><span>Password</span><input id="password" type="password" autocomplete="current-password"></label>
+    <button class="btn" id="signin">Sign in</button>
+    <div class="error" id="auth-error"></div>
+  </div>
+  <p class="meta" style="margin-top:16px">Forgot your password? Ask the commissioner to reset it.</p>
+</section>
+
+<!-- App -->
+<div id="app" class="hidden">
+  <header><div class="wrap">
+    <div class="wordmark">FOUR<span>PLAY</span></div>
+    <div class="who"><span id="who-name"></span><button id="signout">Sign out</button></div>
+  </div></header>
+  <nav><div class="wrap" role="tablist">
+    <button role="tab" data-view="picks" aria-selected="true">Picks</button>
+    <button role="tab" data-view="standings">Standings</button>
+    <button role="tab" data-view="history">History</button>
+    <button role="tab" data-view="admin" id="tab-admin" class="hidden">Admin</button>
+  </div></nav>
+
+  <main class="wrap">
+    <section id="view-picks"></section>
+    <section id="view-standings" class="hidden"></section>
+    <section id="view-history" class="hidden"></section>
+    <section id="view-admin" class="hidden"></section>
+  </main>
+
+  <div class="slip hidden" id="slip"><div class="wrap">
+    <div class="slots" id="slots"></div>
+    <button class="btn ticket" id="lock" disabled>Lock picks</button>
+  </div></div>
+</div>
+
+<dialog id="confirm">
+  <h3>Lock in these picks?</h3>
+  <p class="meta" style="margin:0">Once locked they can't be changed, and you'll be able to see everyone else's.</p>
+  <ul id="confirm-list"></ul>
+  <div class="dialog-actions">
+    <button class="btn quiet" id="confirm-no">Not yet</button>
+    <button class="btn ticket" id="confirm-yes">Yes, lock them</button>
+  </div>
+</dialog>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const S = {
+  user: null, me: null, league: null, profiles: [], weeks: [],
+  view: 'picks', week: null,             // week shown on Picks tab
+  games: [], subs: [], picks: [], results: [],
+  selected: new Set(),                   // "gameId:side"
+  historyWeek: null, adminWeek: null, adminPlayer: null, adminSel: new Set(),
+  pollTimer: null,
+};
+
+// ── Formatting ───────────────────────────────────────────────────────────────
+const fmtSpread = (n) => n == null ? '—' : n === 0 ? 'PK' : (n > 0 ? '+' : '−') + Math.abs(n).toString().replace(/\.5$/, '½');
+const fmtMoney = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + '$' + Math.abs(n).toLocaleString();
+const moneyClass = (n) => n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero';
+const fmtKick = (iso) => new Date(iso).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+const fmtDate = (iso) => new Date(iso).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const teamSpread = (g, side) => g.home_spread == null ? null : (side === 'home' ? g.home_spread : -g.home_spread);
+const adjSpread = (g, side) => { const s = teamSpread(g, side); return s == null ? null : s + S.league.bonus; };
+const vegasText = (g) => {
+  if (g.home_spread == null) return 'No line yet';
+  if (g.home_spread === 0) return 'Pick ’em';
+  return g.home_spread < 0 ? `${g.home_abbr} ${fmtSpread(g.home_spread)}` : `${g.away_abbr} ${fmtSpread(-g.home_spread)}`;
+};
+const teamName = (g, side) => side === 'home' ? g.home_name : g.away_name;
+const teamAbbr = (g, side) => side === 'home' ? g.home_abbr : g.away_abbr;
+const started = (g) => new Date(g.kickoff) <= new Date();
+
+// Margin vs the adjusted line. >0 covered, 0 push, <0 lost, null not final.
+function pickMargin(g, side) {
+  if (g.home_score == null || g.away_score == null || g.home_spread == null) return null;
+  const diff = side === 'home' ? g.home_score - g.away_score : g.away_score - g.home_score;
+  return diff + adjSpread(g, side);
+}
+const pickClass = (g, side) => { const m = pickMargin(g, side); return m == null ? '' : m > 0 ? 'win' : m === 0 ? 'push' : 'loss'; };
+
+const gameById = (id) => S.games.find((g) => g.id === id);
+const nameOf = (uid) => S.profiles.find((p) => p.id === uid)?.name ?? '?';
+const isStraddle = (picks, gameId) => picks.filter((p) => p.game_id === gameId).length === 2;
+
+// ── Data loading ─────────────────────────────────────────────────────────────
+async function loadStatic() {
+  const [{ data: league }, { data: profiles }, { data: weeks }, { data: me }] = await Promise.all([
+    sb.from('league').select('*').eq('id', 1).single(),
+    sb.from('profiles').select('*').order('name'),
+    sb.from('weeks').select('*').order('week'),
+    sb.from('profiles').select('*').eq('id', S.user.id).single(),
+  ]);
+  Object.assign(S, { league, profiles: profiles || [], weeks: weeks || [], me });
+  const posted = S.weeks.filter((w) => w.season === league.season && w.lines_locked_at);
+  S.week ??= posted.at(-1)?.week ?? null;
+  S.adminWeek ??= S.week;
+  S.historyWeek ??= S.weeks.filter((w) => w.season === league.season && w.graded).at(-1)?.week ?? S.week;
+  $('#who-name').textContent = me?.name || S.user.email;
+  $('#tab-admin').classList.toggle('hidden', !me?.is_admin);
+}
+
+async function loadWeek(week) {
+  const season = S.league.season;
+  const [{ data: games }, { data: subs }, { data: picks }, { data: results }] = await Promise.all([
+    sb.from('games').select('*').eq('season', season).eq('week', week).order('kickoff'),
+    sb.from('submissions').select('*').eq('season', season).eq('week', week),
+    sb.from('picks').select('*').eq('season', season).eq('week', week),
+    sb.from('week_results').select('*').eq('season', season).eq('week', week),
+  ]);
+  return { games: games || [], subs: subs || [], picks: picks || [], results: results || [] };
+}
+
+async function refreshPicksView() {
+  if (S.week == null) return render();
+  Object.assign(S, await loadWeek(S.week));
+  render();
+}
+
+// ── Picks view ───────────────────────────────────────────────────────────────
+function renderPicks() {
+  const el = $('#view-picks');
+  const slip = $('#slip');
+  if (S.week == null || !S.league) {
+    el.innerHTML = `<div class="empty">No lines posted yet. They go up Tuesday at 9am ET.</div>`;
+    slip.classList.add('hidden'); return;
+  }
+  const wk = S.weeks.find((w) => w.week === S.week && w.season === S.league.season);
+  const mine = S.subs.find((s) => s.user_id === S.user.id);
+  const closed = wk?.deadline && new Date(wk.deadline) < new Date();
+  const myPicks = S.picks.filter((p) => p.user_id === S.user.id);
+  const canPick = !mine && !closed;
+
+  let html = `<h1>Week ${S.week}</h1>
+    <p class="meta">Vegas line, then each team <strong>+${S.league.bonus}</strong>. Pick ${S.league.picks_per_week} that cover.
+    ${wk?.deadline ? `Deadline <strong>${fmtDate(wk.deadline)}</strong>.` : ''}</p>`;
+
+  if (mine) html += `<p class="notice">Your picks are locked (${fmtDate(mine.submitted_at)}). Everyone's picks are shown below.</p>`;
+  else if (closed) html += `<p class="notice">This week is closed. No picks were submitted, so it counts as a loss.</p>`;
+
+  html += S.games.map((g) => {
+    const off = started(g);
+    const sideBtn = (side) => {
+      const key = `${g.id}:${side}`;
+      const pressed = canPick ? S.selected.has(key) : myPicks.some((p) => p.game_id === g.id && p.side === side);
+      const cls = !canPick && pressed ? pickClass(g, side) : '';
+      const score = g.home_score != null ? `<span class="score">${side === 'home' ? g.home_score : g.away_score}</span>` : '';
+      return `<button class="team ${cls}" data-key="${key}" aria-pressed="${pressed}" ${(!canPick || off || g.home_spread == null) ? 'disabled' : ''}>
+        <span><span class="name">${esc(teamName(g, side))}</span><span class="sub">${side === 'home' ? 'Home' : 'Away'} · Vegas ${fmtSpread(teamSpread(g, side))}</span></span>
+        <span style="display:flex;align-items:center;gap:10px">${score}<span class="line">${fmtSpread(adjSpread(g, side))}</span></span>
+      </button>`;
+    };
+    const status = g.status === 'final' ? 'Final' : g.status === 'in_progress' ? '<span class="started">Live</span>' : off ? '<span class="started">Started</span>' : fmtKick(g.kickoff);
+    const strad = (canPick ? S.selected.has(`${g.id}:home`) && S.selected.has(`${g.id}:away`) : isStraddle(myPicks, g.id)) ? '<span class="straddle">STRADDLE</span>' : '';
+    return `<div class="game">
+      <div class="game-head"><span>${status}${strad}</span><span class="vegas">${esc(vegasText(g))}</span></div>
+      <div class="sides">${sideBtn('away')}${sideBtn('home')}</div>
+    </div>`;
+  }).join('');
+
+  if (!S.games.length) html += `<div class="empty">No games loaded for this week yet.</div>`;
+
+  // League board
+  html += `<h2>League</h2>`;
+  const canSee = mine || closed;
+  html += `<table><tr><th>Player</th><th>${canSee ? 'Picks' : 'Status'}</th></tr>` +
+    S.profiles.map((p) => {
+      const sub = S.subs.find((s) => s.user_id === p.id);
+      const pk = S.picks.filter((x) => x.user_id === p.id);
+      let cell;
+      if (canSee) {
+        cell = sub ? pk.map((x) => { const g = gameById(x.game_id); if (!g) return ''; const c = pickClass(g, x.side);
+          return `<span class="pill ${c ? c[0] : ''}">${esc(teamAbbr(g, x.side))} ${fmtSpread(adjSpread(g, x.side))}</span>`; }).join('') +
+          (pk.length && [...new Set(pk.map((x) => x.game_id))].some((id) => isStraddle(pk, id)) ? '<span class="straddle">STRADDLE</span>' : '')
+          : `<span class="pill waiting">${closed ? 'No picks — loss' : 'Not in yet'}</span>`;
+      } else {
+        cell = `<span class="dot ${sub ? 'in' : ''}"></span>${sub ? 'Locked in' : 'Waiting'}`;
+      }
+      return `<tr class="${p.id === S.user.id ? 'row-you' : ''}"><td>${esc(p.name)}</td><td>${cell}</td></tr>`;
+    }).join('') + `</table>`;
+
+  el.innerHTML = html;
+
+  // Slip
+  if (canPick && S.games.length) {
+    slip.classList.remove('hidden');
+    const n = S.league.picks_per_week;
+    const sel = [...S.selected];
+    $('#slots').innerHTML = Array.from({ length: n }, (_, i) => {
+      const key = sel[i];
+      if (!key) return `<div class="slot">${i + 1}</div>`;
+      const [id, side] = key.split(':'); const g = gameById(id);
+      return `<div class="slot filled">${esc(teamAbbr(g, side))}<small>${fmtSpread(adjSpread(g, side))}</small></div>`;
+    }).join('');
+    $('#lock').disabled = sel.length !== n;
+  } else slip.classList.add('hidden');
+
+  el.querySelectorAll('.team[data-key]').forEach((b) => b.addEventListener('click', () => {
+    const key = b.dataset.key;
+    if (S.selected.has(key)) S.selected.delete(key);
+    else if (S.selected.size < S.league.picks_per_week) S.selected.add(key);
+    else return toast(`You already have ${S.league.picks_per_week} picks — remove one first`);
+    renderPicks();
+  }));
+}
+
+async function lockPicks() {
+  const picks = [...S.selected].map((k) => { const [game_id, side] = k.split(':'); return { game_id, side }; });
+  const { error } = await sb.rpc('submit_picks', { p_season: S.league.season, p_week: S.week, p_picks: picks });
+  if (error) return toast(error.message.replace(/^.*?: /, ''));
+  S.selected.clear();
+  toast('Picks locked');
+  await refreshPicksView();
+}
+
+// ── Standings ────────────────────────────────────────────────────────────────
+async function renderStandings() {
+  const el = $('#view-standings');
+  const season = S.league.season;
+  const [{ data: results }, { data: picks }] = await Promise.all([
+    sb.from('week_results').select('*').eq('season', season),
+    sb.from('picks').select('user_id, week, game_id').eq('season', season),
+  ]);
+  const rows = S.profiles.map((p) => {
+    const r = (results || []).filter((x) => x.user_id === p.id);
+    const mine = (picks || []).filter((x) => x.user_id === p.id);
+    const straddles = Object.values(mine.reduce((a, x) => { a[x.week + ':' + x.game_id] = (a[x.week + ':' + x.game_id] || 0) + 1; return a; }, {})).filter((c) => c === 2).length;
+    return { p, net: r.reduce((a, x) => a + Number(x.net), 0), won: r.filter((x) => x.won).length, lost: r.filter((x) => !x.won).length,
+      picksWon: r.reduce((a, x) => a + x.wins, 0), picksTotal: r.reduce((a, x) => a + x.wins + x.losses + x.pushes, 0), straddles };
+  }).sort((a, b) => b.net - a.net || b.won - a.won);
+  const graded = S.weeks.filter((w) => w.season === season && w.graded).length;
+  el.innerHTML = `<h1>Standings</h1><p class="meta">${graded} week${graded === 1 ? '' : 's'} graded · winners collect $${S.league.stake} from each loser</p>
+    <table><tr><th>Player</th><th class="num">Net</th><th class="num">Weeks</th><th class="num">Picks</th><th class="num">Straddles</th></tr>` +
+    rows.map((r) => `<tr class="${r.p.id === S.user.id ? 'row-you' : ''}"><td>${esc(r.p.name)}</td>
+      <td class="num ${moneyClass(r.net)}">${fmtMoney(r.net)}</td>
+      <td class="num">${r.won}–${r.lost}</td>
+      <td class="num" style="font-size:15px;font-weight:600">${r.picksWon}/${r.picksTotal}</td>
+      <td class="num">${r.straddles}</td></tr>`).join('') + `</table>`;
+}
+
+// ── History ──────────────────────────────────────────────────────────────────
+async function renderHistory() {
+  const el = $('#view-history');
+  const weeks = S.weeks.filter((w) => w.season === S.league.season && (w.graded || (w.deadline && new Date(w.deadline) < new Date())));
+  if (!weeks.length) return el.innerHTML = `<h1>History</h1><div class="empty">Nothing to look back on yet.</div>`;
+  if (!weeks.some((w) => w.week === S.historyWeek)) S.historyWeek = weeks.at(-1).week;
+  const d = await loadWeek(S.historyWeek);
+  const wk = weeks.find((w) => w.week === S.historyWeek);
+  const winners = d.results.filter((r) => r.won).map((r) => nameOf(r.user_id));
+  const gameSlug = (g) => `${g.away_abbr} ${g.away_score ?? ''} @ ${g.home_abbr} ${g.home_score ?? ''}`;
+
+  el.innerHTML = `<h1>History</h1>
+    <div class="toolbar"><select id="hist-week">${weeks.map((w) => `<option value="${w.week}" ${w.week === S.historyWeek ? 'selected' : ''}>Week ${w.week}</option>`).join('')}</select>
+    <span class="meta" style="margin:0">${wk.graded ? (winners.length ? `Won by ${winners.join(', ')}` : 'Nobody won — no blood') : 'Not graded yet'}</span></div>
+    <table><tr><th>Player</th><th>Picks</th><th class="num">Net</th></tr>` +
+    S.profiles.map((p) => {
+      const r = d.results.find((x) => x.user_id === p.id);
+      const pk = d.picks.filter((x) => x.user_id === p.id);
+      const cell = pk.length ? pk.map((x) => { const g = d.games.find((gg) => gg.id === x.game_id); if (!g) return '';
+        const m = pickMargin(g, x.side); const c = m == null ? '' : m > 0 ? 'w' : m === 0 ? 'p' : 'l';
+        return `<span class="pill ${c}" title="${esc(gameSlug(g))}">${esc(teamAbbr(g, x.side))} ${fmtSpread(adjSpread(g, x.side))}</span>`; }).join('')
+        + ([...new Set(pk.map((x) => x.game_id))].some((id) => isStraddle(pk, id)) ? '<span class="straddle">STRADDLE</span>' : '')
+        : `<span class="pill waiting">No picks</span>`;
+      return `<tr class="${p.id === S.user.id ? 'row-you' : ''}"><td>${esc(p.name)}<br><small class="meta">${r ? `${r.wins}–${r.losses}${r.pushes ? `–${r.pushes} push` : ''}` : ''}</small></td><td>${cell}</td>
+        <td class="num ${r ? moneyClass(r.net) : ''}">${r ? fmtMoney(Number(r.net)) : '—'}</td></tr>`;
+    }).join('') + `</table>
+    <h2>Scores</h2><table><tr><th>Game</th><th>Vegas</th><th>Final</th></tr>` +
+    d.games.map((g) => `<tr><td>${esc(g.away_name)} @ ${esc(g.home_name)}</td><td>${esc(vegasText(g))}</td><td class="num" style="font-size:16px">${g.away_score ?? '–'} – ${g.home_score ?? '–'}</td></tr>`).join('') + `</table>`;
+  $('#hist-week').onchange = (e) => { S.historyWeek = Number(e.target.value); renderHistory(); };
+}
+
+// ── Admin ────────────────────────────────────────────────────────────────────
+async function renderAdmin() {
+  const el = $('#view-admin');
+  if (!S.me?.is_admin) return el.innerHTML = '';
+  const season = S.league.season;
+  const weekNums = Array.from({ length: 18 }, (_, i) => i + 1);
+  S.adminWeek ??= S.week ?? 1;
+  const d = await loadWeek(S.adminWeek);
+  const wk = S.weeks.find((w) => w.week === S.adminWeek && w.season === season);
+  const moved = d.games.filter((g) => g.home_spread != null && g.live_spread != null && Math.abs(g.live_spread - g.home_spread) > 3);
+
+  let html = `<h1>Admin</h1>`;
+  if (moved.length) html += `<p class="notice"><strong>Line moved more than 3 points:</strong> ${moved.map((g) => `${g.away_abbr}@${g.home_abbr} (${fmtSpread(g.home_spread)} → ${fmtSpread(g.live_spread)} on ${g.home_abbr})`).join('; ')}</p>`;
+
+  html += `<div class="toolbar">
+      <select id="adm-week">${weekNums.map((n) => `<option value="${n}" ${n === S.adminWeek ? 'selected' : ''}>Week ${n}${S.weeks.some((w) => w.week === n && w.season === season) ? '' : ' (not loaded)'}</option>`).join('')}</select>
+      <button class="btn small quiet" id="adm-import">${wk ? 'Re-sync from ESPN' : 'Import from ESPN'}</button>
+      ${wk ? `<button class="btn small quiet" id="adm-grade">Grade week</button>` : ''}
+    </div>
+    <p class="meta">${wk ? `Lines locked ${wk.lines_locked_at ? fmtDate(wk.lines_locked_at) : '— not yet'} · deadline ${wk.deadline ? fmtDate(wk.deadline) : '—'} · ${wk.graded ? 'graded' : 'not graded'}` : 'Import the week to load its games and lines.'}
+      ${wk?.lines_locked_at ? '' : (wk ? `<br><button class="btn small" id="adm-post">Post lines now (opens picking)</button>` : '')}</p>`;
+
+  if (wk) {
+    html += `<h2>Games</h2><p class="meta">Line is for the home team (negative = home favored). Edit anything, then save.</p>
+      <div class="admin-game" style="border:0;color:var(--ink-soft);font-size:13px"><span>Game</span><span>Home line</span><span>Away</span><span>Home</span><span>Status</span></div>` +
+      d.games.map((g) => `<div class="admin-game" data-id="${g.id}">
+        <span>${esc(g.away_abbr)} @ ${esc(g.home_abbr)}<br><small class="meta">${fmtDate(g.kickoff)}${g.live_spread != null && g.live_spread !== g.home_spread ? ` · live ${fmtSpread(g.live_spread)}` : ''}</small></span>
+        <input name="home_spread" type="number" step="0.5" value="${g.home_spread ?? ''}" placeholder="line">
+        <input name="away_score" type="number" value="${g.away_score ?? ''}" placeholder="–">
+        <input name="home_score" type="number" value="${g.home_score ?? ''}" placeholder="–">
+        <select name="status">${['scheduled','in_progress','final'].map((s) => `<option ${g.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
+      </div>`).join('') +
+      `<div class="toolbar"><button class="btn" id="adm-save">Save games</button>
+        <label class="meta" style="margin:0">Deadline <input type="datetime-local" id="adm-deadline" value="${wk.deadline ? toLocalInput(wk.deadline) : ''}"></label></div>`;
+
+    // Picks on behalf of a player
+    S.adminPlayer ??= S.profiles[0]?.id;
+    const pk = d.picks.filter((x) => x.user_id === S.adminPlayer);
+    if (!S.adminSelInit || S.adminSelInit !== `${S.adminWeek}:${S.adminPlayer}`) { S.adminSel = new Set(pk.map((x) => `${x.game_id}:${x.side}`)); S.adminSelInit = `${S.adminWeek}:${S.adminPlayer}`; }
+    html += `<h2>Picks for a player</h2><p class="meta">For back-filling or fixing. Overwrites whatever they have for this week.</p>
+      <div class="toolbar"><select id="adm-player">${S.profiles.map((p) => `<option value="${p.id}" ${p.id === S.adminPlayer ? 'selected' : ''}>${esc(p.name)}${d.subs.some((s) => s.user_id === p.id) ? ' ✓' : ''}</option>`).join('')}</select>
+        <button class="btn small" id="adm-setpicks">Save picks (${S.adminSel.size})</button>
+        <button class="btn small quiet" id="adm-clearpicks">Clear their picks</button></div>` +
+      d.games.map((g) => `<div class="game"><div class="game-head"><span>${fmtKick(g.kickoff)}</span><span class="vegas">${esc(vegasText(g))}</span></div><div class="sides">` +
+        ['away', 'home'].map((side) => `<button class="team" data-akey="${g.id}:${side}" aria-pressed="${S.adminSel.has(`${g.id}:${side}`)}" ${g.home_spread == null ? 'disabled' : ''}>
+          <span class="name">${esc(teamAbbr(g, side))}</span><span class="line">${fmtSpread(adjSpread(g, side))}</span></button>`).join('') + `</div></div>`).join('');
+  }
+
+  // Players + league
+  html += `<h2>Players</h2><table><tr><th>Name</th><th>Admin</th></tr>` +
+    S.profiles.map((p) => `<tr data-pid="${p.id}"><td><input name="pname" value="${esc(p.name)}" style="padding:6px 8px;border:1px solid var(--rule);border-radius:6px;width:100%"></td>
+      <td><input type="checkbox" name="padmin" ${p.is_admin ? 'checked' : ''}></td></tr>`).join('') + `</table>
+    <div class="toolbar"><button class="btn small" id="adm-saveplayers">Save players</button><span class="meta" style="margin:0">Add or remove players and reset passwords in Supabase → Authentication.</span></div>
+    <h2>League</h2><div class="toolbar">
+      <label class="meta" style="margin:0">Season <input id="lg-season" type="number" value="${S.league.season}" style="width:90px"></label>
+      <label class="meta" style="margin:0">Stake $<input id="lg-stake" type="number" value="${S.league.stake}" style="width:70px"></label>
+      <label class="meta" style="margin:0">Bonus points <input id="lg-bonus" type="number" value="${S.league.bonus}" style="width:70px"></label>
+      <button class="btn small" id="adm-saveleague">Save league</button></div>`;
+
+  el.innerHTML = html;
+
+  $('#adm-week').onchange = (e) => { S.adminWeek = Number(e.target.value); renderAdmin(); };
+  $('#adm-import').onclick = () => importFromEspn(S.adminWeek);
+  $('#adm-grade')?.addEventListener('click', async () => {
+    const force = d.games.some((g) => g.status !== 'final') && !confirm('Not every game is final. Grade anyway? (Unfinished games count as losses for anyone who picked them.)');
+    if (force) return;
+    const { error } = await sb.rpc('grade_week', { p_season: season, p_week: S.adminWeek, p_force: true });
+    toast(error ? error.message : `Week ${S.adminWeek} graded`); await loadStatic(); renderAdmin();
+  });
+  $('#adm-post')?.addEventListener('click', async () => {
+    await sb.from('weeks').update({ lines_locked_at: new Date().toISOString() }).eq('season', season).eq('week', S.adminWeek);
+    toast('Lines posted'); await loadStatic(); renderAdmin();
+  });
+  $('#adm-save')?.addEventListener('click', async () => {
+    for (const row of el.querySelectorAll('.admin-game[data-id]')) {
+      const v = (n) => { const x = row.querySelector(`[name=${n}]`).value; return x === '' ? null : Number(x); };
+      const status = row.querySelector('[name=status]').value;
+      const { error } = await sb.from('games').update({ home_spread: v('home_spread'), away_score: v('away_score'), home_score: v('home_score'), status }).eq('id', row.dataset.id);
+      if (error) return toast(error.message);
+    }
+    const dl = $('#adm-deadline').value;
+    if (dl) await sb.from('weeks').update({ deadline: new Date(dl).toISOString() }).eq('season', season).eq('week', S.adminWeek);
+    toast('Saved'); await loadStatic(); renderAdmin();
+  });
+  $('#adm-player')?.addEventListener('change', (e) => { S.adminPlayer = e.target.value; renderAdmin(); });
+  el.querySelectorAll('.team[data-akey]').forEach((b) => b.onclick = () => { const k = b.dataset.akey; S.adminSel.has(k) ? S.adminSel.delete(k) : S.adminSel.add(k); renderAdmin(); });
+  $('#adm-setpicks')?.addEventListener('click', async () => {
+    if (S.adminSel.size !== S.league.picks_per_week && !confirm(`That's ${S.adminSel.size} picks, not ${S.league.picks_per_week}. Save anyway?`)) return;
+    const picks = [...S.adminSel].map((k) => { const [game_id, side] = k.split(':'); return { game_id, side }; });
+    const { error } = await sb.rpc('admin_set_picks', { p_user: S.adminPlayer, p_season: season, p_week: S.adminWeek, p_picks: picks });
+    toast(error ? error.message : `Picks saved for ${nameOf(S.adminPlayer)}`); renderAdmin();
+  });
+  $('#adm-clearpicks')?.addEventListener('click', async () => {
+    const { error } = await sb.rpc('admin_set_picks', { p_user: S.adminPlayer, p_season: season, p_week: S.adminWeek, p_picks: [] });
+    S.adminSelInit = null; toast(error ? error.message : 'Cleared'); renderAdmin();
+  });
+  $('#adm-saveplayers').onclick = async () => {
+    for (const row of el.querySelectorAll('tr[data-pid]')) {
+      const { error } = await sb.from('profiles').update({ name: row.querySelector('[name=pname]').value.trim(), is_admin: row.querySelector('[name=padmin]').checked }).eq('id', row.dataset.pid);
+      if (error) return toast(error.message);
+    }
+    toast('Players saved'); await loadStatic(); renderAdmin();
+  };
+  $('#adm-saveleague').onclick = async () => {
+    const { error } = await sb.from('league').update({ season: Number($('#lg-season').value), stake: Number($('#lg-stake').value), bonus: Number($('#lg-bonus').value) }).eq('id', 1);
+    toast(error ? error.message : 'League saved'); await loadStatic(); renderAdmin();
+  };
+}
+
+function toLocalInput(iso) { const d = new Date(iso); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+// Browser-side ESPN import (same logic as scripts/sync.mjs). Falls back to telling you to run the Action.
+async function importFromEspn(week) {
+  const season = S.league.season;
+  toast(`Fetching week ${week} from ESPN…`);
+  let data;
+  try {
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${season}`);
+    data = await r.json();
+  } catch (e) { return toast('ESPN blocked the browser request — run the "Fourplay sync" Action with mode=import instead.'); }
+  const events = data.events || [];
+  if (!events.length) return toast('ESPN returned no games for that week');
+  const games = events.map((ev) => {
+    const comp = ev.competitions[0];
+    const home = comp.competitors.find((c) => c.homeAway === 'home'), away = comp.competitors.find((c) => c.homeAway === 'away');
+    const state = comp.status?.type?.state; const status = state === 'post' ? 'final' : state === 'in' ? 'in_progress' : 'scheduled';
+    const o = comp.odds?.[0]; let spread = null;
+    if (o) { const det = (o.details || '').trim().toUpperCase(); const m = det.match(/^([A-Z]{2,4})\s*([+-]?\d+(?:\.\d+)?)$/);
+      if (det === 'EVEN' || det === 'PK') spread = 0;
+      else if (m) spread = m[1] === home.team.abbreviation ? Number(m[2]) : m[1] === away.team.abbreviation ? -Number(m[2]) : (typeof o.spread === 'number' ? o.spread : null);
+      else if (typeof o.spread === 'number') spread = o.spread; }
+    return { id: String(ev.id), season, week, kickoff: ev.date, home_abbr: home.team.abbreviation, home_name: home.team.displayName,
+      away_abbr: away.team.abbreviation, away_name: away.team.displayName, live_spread: spread,
+      home_score: status === 'scheduled' ? null : Number(home.score), away_score: status === 'scheduled' ? null : Number(away.score), status };
+  });
+  const sundays = games.filter((g) => new Date(g.kickoff).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short' }) === 'Sun');
+  const deadline = (sundays.length ? sundays : games).map((g) => g.kickoff).sort()[0];
+  let { error } = await sb.from('weeks').upsert({ season, week, deadline }, { onConflict: 'season,week' });
+  if (error) return toast(error.message);
+  const { data: existing } = await sb.from('games').select('id, home_spread').eq('season', season).eq('week', week);
+  const known = new Map((existing || []).map((g) => [g.id, g.home_spread]));
+  ({ error } = await sb.from('games').upsert(games.map((g) => ({ ...g, home_spread: known.get(g.id) ?? g.live_spread })), { onConflict: 'id' }));
+  if (error) return toast(error.message);
+  toast(`Week ${week}: ${games.length} games loaded`);
+  await loadStatic(); renderAdmin();
+}
+
+// ── Shell ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+  document.querySelector('.toast')?.remove();
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), 3500);
+}
+
+function render() {
+  document.querySelectorAll('[role=tab]').forEach((b) => b.setAttribute('aria-selected', b.dataset.view === S.view));
+  ['picks', 'standings', 'history', 'admin'].forEach((v) => $(`#view-${v}`).classList.toggle('hidden', v !== S.view));
+  if (S.view === 'picks') renderPicks(); else $('#slip').classList.add('hidden');
+  if (S.view === 'standings') renderStandings();
+  if (S.view === 'history') renderHistory();
+  if (S.view === 'admin') renderAdmin();
+}
+
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  S.user = session?.user ?? null;
+  $('#auth').classList.toggle('hidden', !!S.user);
+  $('#app').classList.toggle('hidden', !S.user);
+  clearInterval(S.pollTimer);
+  if (!S.user) return;
+  await loadStatic();
+  await refreshPicksView();
+  S.pollTimer = setInterval(() => { if (document.visibilityState === 'visible' && S.view === 'picks') refreshPicksView(); }, 30000);
+}
+
+$('#signin').onclick = async () => {
+  $('#auth-error').textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email: $('#email').value.trim(), password: $('#password').value });
+  if (error) $('#auth-error').textContent = error.message;
+};
+$('#password').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#signin').click(); });
+$('#signout').onclick = () => sb.auth.signOut();
+sb.auth.onAuthStateChange(() => boot());
+document.querySelectorAll('[role=tab]').forEach((b) => b.onclick = () => { S.view = b.dataset.view; render(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.user) render(); });
+
+$('#lock').onclick = () => {
+  $('#confirm-list').innerHTML = [...S.selected].map((k) => { const [id, side] = k.split(':'); const g = gameById(id);
+    return `<li><span>${esc(teamName(g, side))}</span><b>${fmtSpread(adjSpread(g, side))}</b></li>`; }).join('');
+  $('#confirm').showModal();
+};
+$('#confirm-no').onclick = () => $('#confirm').close();
+$('#confirm-yes').onclick = async () => { $('#confirm').close(); await lockPicks(); };
+
+if (CONFIG.SUPABASE_URL.includes('YOUR-PROJECT')) {
+  document.body.innerHTML = '<div class="wrap" style="padding-top:60px"><h1>Almost there</h1><p>Open index.html and paste your Supabase URL and anon key into the CONFIG block at the top.</p></div>';
+} else boot();
+</script>
+</body>
+</html>
