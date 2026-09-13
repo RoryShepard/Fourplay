@@ -186,7 +186,7 @@
 <div id="app" class="hidden">
   <header><div class="wrap">
     <div class="wordmark">FOUR<span>PLAY</span></div>
-    <div class="who"><span id="who-name"></span><button id="changepw">Password</button><button id="signout">Sign out</button></div>
+    <div class="who"><span id="who-name"></span><button id="changename">Team name</button><button id="changepw">Password</button><button id="signout">Sign out</button></div>
   </div></header>
   <nav><div class="wrap" role="tablist">
     <button role="tab" data-view="picks" aria-selected="true">Picks</button>
@@ -215,6 +215,17 @@
   <div class="dialog-actions">
     <button class="btn quiet" id="confirm-no">Not yet</button>
     <button class="btn ticket" id="confirm-yes">Yes, lock them</button>
+  </div>
+</dialog>
+
+<dialog id="namedlg">
+  <h3>Your team name</h3>
+  <p class="meta" style="margin:0 0 12px">This is how you'll appear to the league everywhere in the app.</p>
+  <label class="field"><span>Team name</span><input id="name1" maxlength="24" autocomplete="off"></label>
+  <div class="error" id="name-error"></div>
+  <div class="dialog-actions">
+    <button class="btn quiet" id="name-no">Later</button>
+    <button class="btn" id="name-yes">Save</button>
   </div>
 </dialog>
 
@@ -643,6 +654,7 @@ async function boot() {
   if (!S.user) return;
   await loadStatic();
   await refreshPicksView();
+  if (S.me && S.me.name === (S.user.email || '').split('@')[0]) openNameDialog();
   S.pollTimer = setInterval(() => { if (document.visibilityState === 'visible' && S.view === 'picks') refreshPicksView(); }, 30000);
 }
 
@@ -655,6 +667,16 @@ $('#password').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#s
 $('#signout').onclick = () => sb.auth.signOut();
 $('#changepw').onclick = () => { $('#pw1').value = $('#pw2').value = ''; $('#pw-error').textContent = ''; $('#pwdlg').showModal(); };
 $('#pw-no').onclick = () => $('#pwdlg').close();
+function openNameDialog() { $('#name1').value = S.me?.name || ''; $('#name-error').textContent = ''; $('#namedlg').showModal(); }
+$('#changename').onclick = openNameDialog;
+$('#name-no').onclick = () => $('#namedlg').close();
+$('#name-yes').onclick = async () => {
+  const n = $('#name1').value.trim();
+  if (n.length < 2) return $('#name-error').textContent = 'Give it at least 2 characters.';
+  const { error } = await sb.rpc('set_my_name', { p_name: n });
+  if (error) return $('#name-error').textContent = error.message;
+  $('#namedlg').close(); toast('Team name saved'); await loadStatic(); render();
+};
 $('#pw-yes').onclick = async () => {
   const a = $('#pw1').value, b = $('#pw2').value;
   if (a.length < 8) return $('#pw-error').textContent = 'Use at least 8 characters.';
