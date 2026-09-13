@@ -1,0 +1,30 @@
+name: Fourplay sync
+
+on:
+  schedule:
+    - cron: '0 13 * * 2'      # Tuesday 9:00 AM Eastern Daylight Time
+    - cron: '0 14 * * 2'      # Tuesday 9:00 AM Eastern Standard Time (script checks it's really 9am ET)
+    - cron: '20 */3 * * *'    # every 3 hours: scores, live lines, auto-grade
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'auto | snapshot | import | refresh'
+        default: 'refresh'
+        required: true
+      week:
+        description: 'Week number (only for import/snapshot)'
+        required: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: node scripts/sync.mjs ${{ github.event.inputs.mode || 'auto' }} ${{ github.event.inputs.week }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
