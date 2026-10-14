@@ -616,8 +616,12 @@ async function importFromEspn(week) {
       away_abbr: away.team.abbreviation, away_name: away.team.displayName, live_spread: spread,
       home_score: status === 'scheduled' ? null : Number(home.score), away_score: status === 'scheduled' ? null : Number(away.score), status };
   });
-  const sundays = games.filter((g) => new Date(g.kickoff).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short' }) === 'Sun');
-  const deadline = (sundays.length ? sundays : games).map((g) => g.kickoff).sort()[0];
+  const etp = (dt) => { const f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', hour12: false }).formatToParts(dt); return { wd: f.find((x) => x.type === 'weekday').value, hr: Number(f.find((x) => x.type === 'hour').value) % 24 }; };
+  const sun = games.filter((g) => etp(new Date(g.kickoff)).wd === 'Sun');
+  const anchor = new Date((sun.length ? sun : games).map((g) => g.kickoff).sort()[0]);
+  const [y, m, dd] = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(anchor).split('-').map(Number);
+  let deadline = anchor.toISOString();
+  for (const off of [4, 5]) { const c = new Date(Date.UTC(y, m - 1, dd, 13 + off)); if (etp(c).hr === 13) { deadline = c.toISOString(); break; } } // 1:00 PM ET Sunday
   let { error } = await sb.from('weeks').upsert({ season, week, deadline }, { onConflict: 'season,week' });
   if (error) return toast(error.message);
   const { data: existing } = await sb.from('games').select('id, home_spread').eq('season', season).eq('week', week);
