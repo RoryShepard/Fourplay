@@ -68,11 +68,20 @@ function toGame(ev) {
   };
 }
 
-// Deadline = first kickoff on a Sunday (ET). Falls back to earliest game.
+// Deadline = 1:00 PM ET on the Sunday of the week. Games that kick off earlier
+// (Thursday, Friday, Saturday, the 9:30am international games) lock individually at kickoff.
+const DEADLINE_HOUR_ET = 13;
 function computeDeadline(games) {
-  const sundays = games.filter((g) => etParts(new Date(g.kickoff)).weekday === 'Sun');
-  const pool = sundays.length ? sundays : games;
-  return pool.map((g) => g.kickoff).sort()[0];
+  const sun = games.filter((g) => etParts(new Date(g.kickoff)).weekday === 'Sun');
+  const anchor = new Date((sun.length ? sun : games).map((g) => g.kickoff).sort()[0]);
+  const d = new Intl.DateTimeFormat('en-CA', { timeZone: ET, year: 'numeric', month: '2-digit', day: '2-digit' }).format(anchor); // YYYY-MM-DD in ET
+  const [y, m, day] = d.split('-').map(Number);
+  // ET is UTC-4 (EDT) or UTC-5 (EST); pick whichever lands on the right wall-clock hour.
+  for (const off of [4, 5]) {
+    const cand = new Date(Date.UTC(y, m - 1, day, DEADLINE_HOUR_ET + off));
+    if (etParts(cand).hour === DEADLINE_HOUR_ET) return cand.toISOString();
+  }
+  return anchor.toISOString();
 }
 
 async function fetchWeek(season, week) {
