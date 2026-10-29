@@ -106,6 +106,10 @@
   .team[aria-pressed="true"].push { background: var(--push); border-color: var(--push); }
   .team[aria-pressed="true"] .score { color: #fff; }
   .score { font: 700 16px/1 var(--cond); color: var(--ink-soft); }
+  .dm {
+    display: inline-block; font: 700 12px/1 var(--cond); letter-spacing: .06em; color: #fff;
+    background: #19A7FF; border-radius: 4px; padding: 4px 7px; margin-left: 8px; vertical-align: middle;
+  }
   .straddle {
     display: inline-block; font: 700 12px/1 var(--cond); letter-spacing: .06em; color: var(--turf-deep);
     background: var(--ticket); border-radius: 4px; padding: 4px 6px; margin-left: 8px; vertical-align: middle;
@@ -292,6 +296,9 @@ const statusTag = (st) => st ? `<span class="status ${st}">${st.toUpperCase()}</
 const gameById = (id) => S.games.find((g) => g.id === id);
 const nameOf = (uid) => S.profiles.find((p) => p.id === uid)?.name ?? '?';
 const isStraddle = (picks, gameId) => picks.filter((p) => p.game_id === gameId).length === 2;
+const straddleCount = (picks) => [...new Set(picks.map((p) => p.game_id))].filter((id) => isStraddle(picks, id)).length;
+// One straddle = both sides of a game. Two straddles in one week = a Double Middle.
+const straddleBadge = (picks) => { const n = straddleCount(picks); return n >= 2 ? '<span class="dm">🍻 DOUBLE MIDDLE</span>' : n === 1 ? '<span class="straddle">STRADDLE</span>' : ''; };
 
 // ── Data loading ─────────────────────────────────────────────────────────────
 async function loadStatic() {
@@ -381,7 +388,7 @@ function renderPicks() {
       if (canSee) {
         cell = sub ? pk.map((x) => { const g = gameById(x.game_id); if (!g) return ''; const c = pickClass(g, x.side);
           return `<span class="pill ${c ? c[0] : ''}">${esc(teamAbbr(g, x.side))} ${fmtSpread(adjSpread(g, x.side))}</span>`; }).join('') +
-          (pk.length && [...new Set(pk.map((x) => x.game_id))].some((id) => isStraddle(pk, id)) ? '<span class="straddle">STRADDLE</span>' : '')
+          straddleBadge(pk)
           : `<span class="pill waiting">${closed ? 'No picks — loss' : 'Not in yet'}</span>`;
       } else {
         cell = `<span class="dot ${sub ? 'in' : ''}"></span>${sub ? 'Locked in' : 'Waiting'}`;
@@ -424,6 +431,8 @@ async function lockPicks() {
   await refreshPicksView();
 }
 
+const _groupByWeek = (picks) => picks.reduce((a, x) => { (a[x.week] ||= []).push(x); return a; }, {});
+
 // ── Standings ────────────────────────────────────────────────────────────────
 async function renderStandings() {
   const el = $('#view-standings');
@@ -435,18 +444,21 @@ async function renderStandings() {
   const rows = S.profiles.map((p) => {
     const r = (results || []).filter((x) => x.user_id === p.id);
     const mine = (picks || []).filter((x) => x.user_id === p.id);
-    const straddles = Object.values(mine.reduce((a, x) => { a[x.week + ':' + x.game_id] = (a[x.week + ':' + x.game_id] || 0) + 1; return a; }, {})).filter((c) => c === 2).length;
+    const byWeek = _groupByWeek(mine);
+    const straddles = Object.values(byWeek).reduce((a, wp) => a + straddleCount(wp), 0);
+    const doubleMiddles = Object.values(byWeek).filter((wp) => straddleCount(wp) >= 2).length;
     return { p, net: r.reduce((a, x) => a + Number(x.net), 0), won: r.filter((x) => x.won).length, lost: r.filter((x) => !x.won).length,
-      picksWon: r.reduce((a, x) => a + x.wins, 0), picksTotal: r.reduce((a, x) => a + x.wins + x.losses + x.pushes, 0), straddles };
+      picksWon: r.reduce((a, x) => a + x.wins, 0), picksTotal: r.reduce((a, x) => a + x.wins + x.losses + x.pushes, 0), straddles, doubleMiddles };
   }).sort((a, b) => b.net - a.net || b.won - a.won);
   const graded = S.weeks.filter((w) => w.season === season && w.graded).length;
   el.innerHTML = `<h1>Standings</h1><p class="meta">${graded} week${graded === 1 ? '' : 's'} graded · winners collect $${S.league.stake} from each loser</p>
-    <table><tr><th>Player</th><th class="num">Net</th><th class="num">Weeks</th><th class="num">Picks</th><th class="num">Straddles</th></tr>` +
+    <table><tr><th>Player</th><th class="num">Net</th><th class="num">Weeks</th><th class="num">Picks</th><th class="num">Straddles</th><th class="num">Double Middles</th></tr>` +
     rows.map((r) => `<tr class="${r.p.id === S.user.id ? 'row-you' : ''}"><td>${esc(r.p.name)}</td>
       <td class="num ${moneyClass(r.net)}">${fmtMoney(r.net)}</td>
       <td class="num">${r.won}–${r.lost}</td>
       <td class="num" style="font-size:15px;font-weight:600">${r.picksWon}/${r.picksTotal}</td>
-      <td class="num">${r.straddles}</td></tr>`).join('') + `</table>`;
+      <td class="num">${r.straddles}</td>
+      <td class="num" style="color:#19A7FF">${r.doubleMiddles ? '🍻 ' + r.doubleMiddles : '0'}</td></tr>`).join('') + `</table>`;
 }
 
 // ── History ──────────────────────────────────────────────────────────────────
@@ -470,7 +482,7 @@ async function renderHistory() {
       const cell = pk.length ? pk.map((x) => { const g = d.games.find((gg) => gg.id === x.game_id); if (!g) return '';
         const c = pickClass(g, x.side)[0] || '';
         return `<span class="pill ${c}" title="${esc(gameSlug(g))}">${esc(teamAbbr(g, x.side))} ${fmtSpread(adjSpread(g, x.side))}</span>`; }).join('')
-        + ([...new Set(pk.map((x) => x.game_id))].some((id) => isStraddle(pk, id)) ? '<span class="straddle">STRADDLE</span>' : '')
+        + straddleBadge(pk)
         : `<span class="pill waiting">No picks</span>`;
       const st = statusTag(playerStatus(pk, !!pk.length, true, d.games));
       return `<tr class="${p.id === S.user.id ? 'row-you' : ''}"><td>${esc(p.name)}${st}<br><small class="meta">${r ? `${r.wins}–${r.losses}${r.pushes ? `–${r.pushes} push` : ''}` : ''}</small></td><td>${cell}</td>
