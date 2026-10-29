@@ -108,7 +108,7 @@
   .score { font: 700 16px/1 var(--cond); color: var(--ink-soft); }
   .dm {
     display: inline-block; font: 700 12px/1 var(--cond); letter-spacing: .06em; color: #fff;
-    background: #19A7FF; border-radius: 4px; padding: 4px 7px; margin-left: 8px; vertical-align: middle;
+    background: #00C2FF; border-radius: 4px; padding: 4px 7px; margin-left: 8px; vertical-align: middle;
   }
   .straddle {
     display: inline-block; font: 700 12px/1 var(--cond); letter-spacing: .06em; color: var(--turf-deep);
@@ -458,7 +458,7 @@ async function renderStandings() {
       <td class="num">${r.won}–${r.lost}</td>
       <td class="num" style="font-size:15px;font-weight:600">${r.picksWon}/${r.picksTotal}</td>
       <td class="num">${r.straddles}</td>
-      <td class="num" style="color:#19A7FF">${r.doubleMiddles ? '🍻 ' + r.doubleMiddles : '0'}</td></tr>`).join('') + `</table>`;
+      <td class="num" style="color:#00C2FF">${r.doubleMiddles ? '🍻 ' + r.doubleMiddles : '<span style="color:var(--ink-soft);font-size:15px">🚽 Coward</span>'}</td></tr>`).join('') + `</table>`;
 }
 
 // ── History ──────────────────────────────────────────────────────────────────
